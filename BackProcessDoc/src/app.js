@@ -6,10 +6,8 @@ dotenv.config();
 
 const app = express();
 
-// Para aceitar JSON no body
 app.use(express.json());
 
-// Rotas
 app.use("/api/users", userRoutes);
 
 export default app;
