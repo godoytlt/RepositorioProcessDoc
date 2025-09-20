@@ -1,8 +1,13 @@
-const express = require('express');
+import express from "express";
+import { registerUser, getMe } from "../controllers/userController.js";
+import authMiddleware from "../middlewares/authMiddleware.js";
+
 const router = express.Router();
-const authMiddleware = require('../middlewares/authMiddleware');
-const { getMe } = require('../controllers/userController');
 
-router.get('/me', authMiddleware, getMe);
+// rota de cadastro (sem repetir /users)
+router.post("/register", registerUser);
 
-module.exports = router;
+// rota de perfil
+router.get("/me", authMiddleware, getMe);
+
+export default router;

@@ -1,20 +1,24 @@
-require('dotenv').config();
-const express = require('express');
+import dotenv from "dotenv";
+import express from "express";
+
+import authRoutes from "./src/routes/authRoutes.js";
+import userRoutes from "./src/routes/userRoutes.js";
+
+dotenv.config();
+
 const app = express();
 
 app.use(express.json());
 
-const authRoutes = require('./src/routes/authRoutes');
-const userRoutes = require('./src/routes/userRoutes');
+// rotas principais
+app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
 
-app.use('/auth', authRoutes);
-app.use('/users', userRoutes);
+app.get("/", (req, res) => {
+  res.send("API ProcessDoc rodando 🚀");
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
-
-app.get('/', (req, res) => {
-  res.send('API ProcessDoc rodando 🚀');
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
