@@ -1,58 +1,49 @@
-require('dotenv').config();
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const userModel = require('../models/userModel');
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import prisma from "../config/db.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || 'troque_isso_no_env';
-
-async function register(req, res) {
+export async function register(req, res) {
   try {
-    const { name, email, password, cpf } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'name, email e password são obrigatórios' });
-    }
+    const { name, email, password } = req.body;
 
-    const exists = await userModel.findUserByEmail(email);
-    if (exists) return res.status(400).json({ error: 'Email já cadastrado' });
+    const exists = await prisma.user.findUnique({ where: { email } });
+    if (exists) {
+      return res.status(400).json({ error: "Email já registrado" });
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await userModel.createUser({
-      name,
-      email,
-      cpf,
-      passwordHash,
-      role: 'ADVOGADO'
+    const user = await prisma.user.create({
+      data: { name, email, passwordHash, role: "ADVOGADO" },
     });
 
-    const retorno = { id: user.id, name: user.name, email: user.email, role: user.role };
-    return res.status(201).json(retorno);
+    res.status(201).json(user);
   } catch (err) {
-    console.error(err);
-    if (err.code === 'P2002' && err.meta?.target?.includes('email')) {
-      return res.status(400).json({ error: 'Email já cadastrado (db)' });
-    }
-    return res.status(500).json({ error: 'Erro interno' });
+    res.status(500).json({ error: err.message });
   }
 }
 
-async function login(req, res) {
+export async function login(req, res) {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'email e password são obrigatórios' });
 
-    const user = await userModel.findUserByEmail(email);
-    if (!user) return res.status(401).json({ error: 'Usuário não encontrado' });
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ error: "Usuário não encontrado" });
+    }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) return res.status(401).json({ error: 'Senha incorreta' });
+    if (!valid) {
+      return res.status(401).json({ error: "Senha incorreta" });
+    }
 
-    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '8h' });
+    const token = jwt.sign(
+      { userId: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" }
+    );
 
-    return res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    res.json({ token });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Erro interno' });
+    res.status(500).json({ error: err.message });
   }
 }
-
-module.exports = { register, login };
